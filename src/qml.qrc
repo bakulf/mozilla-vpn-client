@@ -412,5 +412,7 @@
         <file>ui/components/VPNDeviceListItem.qml</file>
         <file>ui/components/VPNAlerts.qml</file>
         <file>ui/resources/settings/lock.svg</file>
+        <file>ui/resources/globe.svg</file>
+
     </qresource>
 </RCC>
