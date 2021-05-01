@@ -76,6 +76,7 @@ jobs:
           qmake \
             QTPLUGINS+=qsvg \
             CONFIG-=static \
+            CONFIG+=production \
             CONFIG+=release \
             CONFIG-=debug \
             CONFIG-=debug_and_release \

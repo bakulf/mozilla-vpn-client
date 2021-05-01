@@ -219,7 +219,26 @@ webextension {
             server/serverhandler.h
 }
 
-inspector {
+# Signal handling for unix platforms
+unix {
+    SOURCES += signalhandler.cpp
+    HEADERS += signalhandler.h
+}
+
+RESOURCES += qml.qrc
+RESOURCES += ../glean/glean.qrc
+
+QML_IMPORT_PATH =
+QML_DESIGNER_IMPORT_PATH =
+
+production {
+    message(Production build)
+    DEFINES += MVPN_PRODUCTION_MODE
+    RESOURCES += logo_prod.qrc
+} else {
+    message(Staging build)
+    RESOURCES += logo_beta.qrc
+
     message(Enabling the inspector)
 
     QT+= websockets
@@ -242,27 +261,6 @@ inspector {
             inspector/inspectorhttpserver.h \
             inspector/inspectorwebsocketconnection.h \
             inspector/inspectorwebsocketserver.h
-}
-
-# Signal handling for unix platforms
-unix {
-    SOURCES += signalhandler.cpp
-    HEADERS += signalhandler.h
-}
-
-RESOURCES += qml.qrc
-RESOURCES += ../glean/glean.qrc
-
-QML_IMPORT_PATH =
-QML_DESIGNER_IMPORT_PATH =
-
-production {
-    message(Production build)
-    DEFINES += MVPN_PRODUCTION_MODE
-    RESOURCES += logo_prod.qrc
-} else {
-    message(Staging build)
-    RESOURCES += logo_beta.qrc
 }
 
 balrog {
