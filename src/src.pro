@@ -250,7 +250,12 @@ unix {
 }
 
 RESOURCES += qml.qrc
-RESOURCES += ../glean/glean.qrc
+
+exists($$PWD/../glean/generated/gleansample.h) {
+    RESOURCES += ../glean/glean.qrc
+} else {
+    error(Glean generated files are missing. Please run `python3 ./scripts/generate_glean.py`)
+}
 
 QML_IMPORT_PATH =
 QML_DESIGNER_IMPORT_PATH =
@@ -780,18 +785,8 @@ RESOURCES += $$PWD/../translations/servers.qrc
 
 exists($$PWD/../translations/translations.pri) {
     include($$PWD/../translations/translations.pri)
-}
-else{
-    message(Languages were not imported - using fallback english)
-    TRANSLATIONS += \
-        ../translations/mozillavpn_en.ts
-
-    ts.commands += lupdate $$PWD -no-obsolete -ts $$PWD/../translations/mozillavpn_en.ts
-    ts.CONFIG += no_check_exist
-    ts.output = $$PWD/../translations/mozillavpn_en.ts
-    ts.input = .
-    QMAKE_EXTRA_TARGETS += ts
-    PRE_TARGETDEPS += ts
+} else {
+    error(Languages were not imported. Please run `python3 ./scripts/importLanguages.py`)
 }
 
 QMAKE_LRELEASE_FLAGS += -idbased
