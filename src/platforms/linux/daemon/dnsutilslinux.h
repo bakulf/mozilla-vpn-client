@@ -12,19 +12,20 @@
 #include <QDBusPendingCallWatcher>
 
 class DnsUtilsLinux final : public DnsUtils {
- Q_OBJECT
+  Q_OBJECT
 
  public:
   DnsUtilsLinux(QObject* parent);
   ~DnsUtilsLinux();
-  bool updateResolvers(const QString& ifname, const QList<QHostAddress>& resolvers) override;
+  bool updateResolvers(const QString& ifname,
+                       const QList<QHostAddress>& resolvers) override;
   bool restoreResolvers() override;
 
  private:
   int m_ifindex = 0;
-  QMap<int,DnsLinkDomainList> m_linkDomains;
-  QDBusInterface *m_resolver = nullptr;
-  QDBusInterface *m_properties = nullptr;
+  QMap<int, DnsLinkDomainList> m_linkDomains;
+  QDBusInterface* m_resolver = nullptr;
+  QDBusInterface* m_properties = nullptr;
   void setLinkDNS(int ifindex, const QList<QHostAddress>& resolvers);
   void setLinkDomains(int ifindex, const QList<DnsLinkDomain>& domains);
   void setLinkDefaultRoute(int ifindex, bool enable);

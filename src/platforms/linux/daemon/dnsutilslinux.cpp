@@ -14,7 +14,8 @@
 constexpr const char* DBUS_RESOLVE_SERVICE = "org.freedesktop.resolve1";
 constexpr const char* DBUS_RESOLVE_PATH = "/org/freedesktop/resolve1";
 constexpr const char* DBUS_RESOLVE_MANAGER = "org.freedesktop.resolve1.Manager";
-constexpr const char* DBUS_PROPERTY_INTERFACE = "org.freedesktop.DBus.Properties";
+constexpr const char* DBUS_PROPERTY_INTERFACE =
+    "org.freedesktop.DBus.Properties";
 
 namespace {
 Logger logger(LOG_LINUX, "DnsUtilsLinux");
@@ -57,14 +58,14 @@ bool DnsUtilsLinux::restoreResolvers() {
 
   /* Revert the VPN interface's DNS configuration */
   if (m_ifindex > 0) {
-    QList<QVariant> argumentList = { QVariant::fromValue(m_ifindex) };
+    QList<QVariant> argumentList = {QVariant::fromValue(m_ifindex)};
     QDBusPendingReply<> reply = m_resolver->asyncCallWithArgumentList(
-      QStringLiteral("RevertLink"), argumentList);
+        QStringLiteral("RevertLink"), argumentList);
 
     QDBusPendingCallWatcher* watcher = new QDBusPendingCallWatcher(reply, this);
     QObject::connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), this,
-            SLOT(dnsCallCompleted(QDBusPendingCallWatcher*)));
-    
+                     SLOT(dnsCallCompleted(QDBusPendingCallWatcher*)));
+
     m_ifindex = 0;
   }
 
@@ -80,8 +81,7 @@ void DnsUtilsLinux::dnsCallCompleted(QDBusPendingCallWatcher* call) {
 }
 
 void DnsUtilsLinux::setLinkDNS(int ifindex,
-    const QList<QHostAddress>& resolvers) {
-
+                               const QList<QHostAddress>& resolvers) {
   QList<DnsResolver> resolverList;
   char ifnamebuf[IF_NAMESIZE];
   const char* ifname = if_indextoname(ifindex, ifnamebuf);
@@ -96,15 +96,15 @@ void DnsUtilsLinux::setLinkDNS(int ifindex,
   argumentList << QVariant::fromValue(ifindex);
   argumentList << QVariant::fromValue(resolverList);
   QDBusPendingReply<> reply = m_resolver->asyncCallWithArgumentList(
-    QStringLiteral("SetLinkDNS"), argumentList);
-  
+      QStringLiteral("SetLinkDNS"), argumentList);
+
   QDBusPendingCallWatcher* watcher = new QDBusPendingCallWatcher(reply, this);
   QObject::connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), this,
-          SLOT(dnsCallCompleted(QDBusPendingCallWatcher*)));
+                   SLOT(dnsCallCompleted(QDBusPendingCallWatcher*)));
 }
 
 void DnsUtilsLinux::setLinkDomains(int ifindex,
-    const QList<DnsLinkDomain>& domains) {
+                                   const QList<DnsLinkDomain>& domains) {
   char ifnamebuf[IF_NAMESIZE];
   const char* ifname = if_indextoname(ifindex, ifnamebuf);
   if (ifname) {
@@ -118,11 +118,11 @@ void DnsUtilsLinux::setLinkDomains(int ifindex,
   argumentList << QVariant::fromValue(ifindex);
   argumentList << QVariant::fromValue(domains);
   QDBusPendingReply<> reply = m_resolver->asyncCallWithArgumentList(
-    QStringLiteral("SetLinkDomains"), argumentList);
+      QStringLiteral("SetLinkDomains"), argumentList);
 
   QDBusPendingCallWatcher* watcher = new QDBusPendingCallWatcher(reply, this);
   QObject::connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), this,
-          SLOT(dnsCallCompleted(QDBusPendingCallWatcher*)));
+                   SLOT(dnsCallCompleted(QDBusPendingCallWatcher*)));
 }
 
 void DnsUtilsLinux::setLinkDefaultRoute(int ifindex, bool enable) {
@@ -130,11 +130,11 @@ void DnsUtilsLinux::setLinkDefaultRoute(int ifindex, bool enable) {
   argumentList << QVariant::fromValue(ifindex);
   argumentList << QVariant::fromValue(enable);
   QDBusPendingReply<> reply = m_resolver->asyncCallWithArgumentList(
-    QStringLiteral("SetLinkDefaultRoute"), argumentList);
+      QStringLiteral("SetLinkDefaultRoute"), argumentList);
 
   QDBusPendingCallWatcher* watcher = new QDBusPendingCallWatcher(reply, this);
   QObject::connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), this,
-          SLOT(dnsCallCompleted(QDBusPendingCallWatcher*)));
+                   SLOT(dnsCallCompleted(QDBusPendingCallWatcher*)));
 }
 
 void DnsUtilsLinux::updateLinkDomains() {
@@ -142,15 +142,16 @@ void DnsUtilsLinux::updateLinkDomains() {
    * to satisfy DNS resolution. Unfortunately, this is a pain because Qt doesn't
    * seem to be able to demarshall complex property types.
    */
-  QDBusMessage message = QDBusMessage::createMethodCall(DBUS_RESOLVE_SERVICE,
-    DBUS_RESOLVE_PATH, DBUS_PROPERTY_INTERFACE, "Get");
+  QDBusMessage message = QDBusMessage::createMethodCall(
+      DBUS_RESOLVE_SERVICE, DBUS_RESOLVE_PATH, DBUS_PROPERTY_INTERFACE, "Get");
   message << QString(DBUS_RESOLVE_MANAGER);
   message << QString("Domains");
-  QDBusPendingReply<QVariant> reply = m_resolver->connection().asyncCall(message);
+  QDBusPendingReply<QVariant> reply =
+      m_resolver->connection().asyncCall(message);
 
   QDBusPendingCallWatcher* watcher = new QDBusPendingCallWatcher(reply, this);
   QObject::connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)), this,
-          SLOT(dnsDomainsReceived(QDBusPendingCallWatcher*)));
+                   SLOT(dnsDomainsReceived(QDBusPendingCallWatcher*)));
 }
 
 void DnsUtilsLinux::dnsDomainsReceived(QDBusPendingCallWatcher* call) {
@@ -182,9 +183,9 @@ void DnsUtilsLinux::dnsDomainsReceived(QDBusPendingCallWatcher* call) {
     newlist.removeAll(root);
     setLinkDomains(ifindex, newlist);
   }
-  
+
   /* Add a root search domain for the new interface. */
-  QList<DnsLinkDomain> newlist = { root };
+  QList<DnsLinkDomain> newlist = {root};
   setLinkDomains(m_ifindex, newlist);
   delete call;
 }

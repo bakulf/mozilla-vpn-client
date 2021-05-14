@@ -265,7 +265,7 @@ bool Daemon::deactivate(bool emitSignals) {
     logger.log() << "Already disconnected";
     return true;
   }
-  
+
   if (supportDnsUtils()) {
     if (!dnsutils()->restoreResolvers()) {
       return false;

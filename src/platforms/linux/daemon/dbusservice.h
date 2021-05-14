@@ -56,7 +56,7 @@ class DBusService final : public Daemon {
   DbusAdaptor* m_adaptor = nullptr;
   WireguardUtilsLinux* m_wgutils = nullptr;
   IPUtilsLinux* m_iputils = nullptr;
-  DnsUtilsLinux *m_dnsutils = nullptr;
+  DnsUtilsLinux* m_dnsutils = nullptr;
 };
 
 #endif  // DBUSSERVICE_H
