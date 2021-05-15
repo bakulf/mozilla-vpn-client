@@ -361,8 +361,7 @@ else:linux:!android {
             platforms/linux/daemon/iputilslinux.cpp \
             platforms/linux/daemon/linuxdaemon.cpp \
             platforms/linux/daemon/polkithelper.cpp \
-            platforms/linux/daemon/wireguardutilslinux.cpp \
-            wgquickprocess.cpp
+            platforms/linux/daemon/wireguardutilslinux.cpp
 
     HEADERS += \
             ../3rdparty/wireguard-tools/contrib/embeddable-wg-library/wireguard.h \
@@ -376,8 +375,7 @@ else:linux:!android {
             platforms/linux/daemon/dnsutilslinux.h \
             platforms/linux/daemon/iputilslinux.h \
             platforms/linux/daemon/polkithelper.h \
-            platforms/linux/daemon/wireguardutilslinux.h \
-            wgquickprocess.h
+            platforms/linux/daemon/wireguardutilslinux.h
 
     isEmpty(USRPATH) {
         USRPATH=/usr
@@ -434,11 +432,6 @@ else:linux:!android {
     dbus_service.files = platforms/linux/daemon/org.mozilla.vpn.dbus.service
     dbus_service.path = $${USRPATH}/share/dbus-1/system-services
     INSTALLS += dbus_service
-
-    DEFINES += MVPN_DATA_PATH=\\\"$${USRPATH}/share/mozillavpn\\\"
-    helper.path = $${USRPATH}/share/mozillavpn
-    helper.files = ../linux/daemon/helper.sh
-    INSTALLS += helper
 
     CONFIG += link_pkgconfig
     PKGCONFIG += polkit-gobject-1
