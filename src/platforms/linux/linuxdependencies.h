@@ -10,7 +10,6 @@
 class LinuxDependencies final {
  public:
   static bool checkDependencies();
-  static QString findCgroupPath(const QString& type);
 
  private:
   LinuxDependencies() = default;

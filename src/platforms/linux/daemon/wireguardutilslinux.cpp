@@ -13,9 +13,11 @@
 #include <linux/fib_rules.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
+#include <mntent.h>
 #include <netdb.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 // Import wireguard C library for Linux
@@ -36,8 +38,14 @@ extern "C" {
 constexpr uint32_t WG_FIREWALL_MARK = 0xca6c;
 constexpr uint32_t WG_ROUTE_TABLE = 0xca6c;
 
+/* Traffic classifiers can be used to mark packets which should be either
+ * excluded from the VPN tunnel, or blocked entirely. The values of these
+ * classifiers aren't important so long as they are unique.
+ */
 constexpr const char* VPN_EXCLUDE_CGROUP = "/mozvpn.exclude";
 constexpr const char* VPN_BLOCK_CGROUP = "/mozvpn.block";
+constexpr uint32_t VPN_EXCLUDE_CLASS_ID = 0x00110011;
+constexpr uint32_t VPN_BLOCK_CLASS_ID = 0x00220022;
 
 static void nlmsg_append_attr(char* buf, size_t maxlen, int attrtype,
                               const void* attrdata, size_t attrlen);
@@ -77,7 +85,17 @@ WireguardUtilsLinux::WireguardUtilsLinux(QObject* parent)
           SIGNAL(activated(QSocketDescriptor, QSocketNotifier::Type)),
           SLOT(nlsockReady()));
 
-  m_cgroups = LinuxDependencies::findCgroupPath("net_cls");
+  /* Create control groups for split tunnelling */
+  m_cgroups = WireguardUtilsLinux::findCgroupPath("net_cls");
+  if (!m_cgroups.isNull()) {
+    if (!setupCgroupClass(m_cgroups + VPN_EXCLUDE_CGROUP,
+                          VPN_EXCLUDE_CLASS_ID)) {
+      m_cgroups.clear();
+    } else if (!setupCgroupClass(m_cgroups + VPN_BLOCK_CGROUP,
+                                 VPN_BLOCK_CLASS_ID)) {
+      m_cgroups.clear();
+    }
+  }
 
   logger.log() << "WireguardUtilsLinux created.";
 }
@@ -160,13 +178,9 @@ bool WireguardUtilsLinux::configureInterface(const InterfaceConfig& config) {
   if (NetfilterIfup(goIfname, device->fwmark) != 0) {
     return false;
   }
-  uint32_t excludeClassId = getCgroupClass(VPN_EXCLUDE_CGROUP);
-  if (excludeClassId != 0) {
-    NetfilterMarkCgroup(excludeClassId, device->fwmark);
-  }
-  uint32_t blockClassId = getCgroupClass(VPN_BLOCK_CGROUP);
-  if (blockClassId != 0) {
-    NetfilterBlockCgroup(blockClassId);
+  if (!m_cgroups.isNull()) {
+    NetfilterMarkCgroup(VPN_EXCLUDE_CLASS_ID, device->fwmark);
+    NetfilterBlockCgroup(VPN_BLOCK_CLASS_ID);
   }
   if (config.m_ipv6Enabled) {
     GoString goIpv6Address = {.p = qPrintable(config.m_deviceIpv6Address),
@@ -520,22 +534,62 @@ void WireguardUtilsLinux::nlsockReady() {
   }
 }
 
-unsigned long WireguardUtilsLinux::getCgroupClass(const QString& path) {
-  if (m_cgroups.isEmpty()) {
-    return 0;
+// static
+bool WireguardUtilsLinux::setupCgroupClass(const QString& path,
+                                           unsigned long classid) {
+  logger.log() << "Creating control group:" << path;
+  int flags = S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
+  int err = mkdir(qPrintable(path), flags);
+  if ((err < 0) && (errno != EEXIST)) {
+    logger.log() << "Failed to create" << path + ":" << strerror(errno);
+    return false;
   }
 
-  QString netClassPath = m_cgroups + path + "/net_cls.classid";
-  FILE* fp = fopen(qPrintable(netClassPath), "r");
+  QString netClassPath = path + "/net_cls.classid";
+  FILE* fp = fopen(qPrintable(netClassPath), "w");
+  if (!fp) {
+    logger.log() << "Failed to set classid:" << strerror(errno);
+    return false;
+  }
+  fprintf(fp, "%lu", classid);
+  fclose(fp);
+  return true;
+}
+
+// static
+QString WireguardUtilsLinux::findCgroupPath(const QString& type) {
+  struct mntent entry;
+  char buf[PATH_MAX];
+
+  FILE* fp = fopen("/etc/mtab", "r");
   if (fp == NULL) {
-    return 0;
+    return QString();
   }
 
-  char buf[64];
-  if (fgets(buf, sizeof(buf), fp) == NULL) {
-    fclose(fp);
-    return 0;
+  while (getmntent_r(fp, &entry, buf, sizeof(buf)) != NULL) {
+    if (strcmp(entry.mnt_type, "cgroup") != 0) {
+      continue;
+    }
+    if (hasmntopt(&entry, type.toLocal8Bit().constData()) != NULL) {
+      fclose(fp);
+      return QString(entry.mnt_dir);
+    }
   }
   fclose(fp);
-  return strtoul(buf, NULL, 0);
+
+  return QString();
+}
+
+QString WireguardUtilsLinux::getExcludeCgroup() const {
+  if (m_cgroups.isNull()) {
+    return QString();
+  }
+  return m_cgroups + VPN_EXCLUDE_CGROUP;
+}
+
+QString WireguardUtilsLinux::getBlockCgroup() const {
+  if (m_cgroups.isNull()) {
+    return QString();
+  }
+  return m_cgroups + VPN_BLOCK_CGROUP;
 }
