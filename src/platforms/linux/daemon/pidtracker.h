@@ -43,7 +43,7 @@ class PidTracker final : public QObject {
   explicit PidTracker(QObject* parent);
   ~PidTracker();
 
-  void track(const QString& name, int rootpid);
+  ProcessGroup* track(const QString& name, int rootpid);
 
   QList<int> pids() { return m_processTree.keys(); }
   QList<ProcessGroup*>::iterator begin() { return m_processGroups.begin(); }
